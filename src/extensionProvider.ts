@@ -1,7 +1,5 @@
-import { SignableMessage } from "../signableMessage";
-import { Signature } from "../signature";
-import { Transaction } from "../transaction";
-import { IDappProvider } from "./interface";
+import { IDappProvider, ISignableMessage, ISignableMessageFactory, ISignedMessage, ISignedTransaction, ITransaction, ITransactionFactory } from "./interface";
+import { SignableMessageFactoryLocator, TransactionFactoryLocator } from "./locators";
 
 declare global {
   interface Window {
@@ -19,7 +17,8 @@ export class ExtensionProvider implements IDappProvider {
   public account: IExtensionAccount;
   private initialized: boolean = false;
   private static _instance: ExtensionProvider = new ExtensionProvider();
-  constructor() {
+  
+  private constructor() {
     if (ExtensionProvider._instance) {
       throw new Error(
         "Error: Instantiation failed: Use ExtensionProvider.getInstance() instead of new."
@@ -94,26 +93,26 @@ export class ExtensionProvider implements IDappProvider {
     return !!this.account;
   }
 
-  async sendTransaction(transaction: Transaction): Promise<Transaction> {
+  async sendTransaction(transaction: ITransaction): Promise<ISignedTransaction> {
     const txResponse = await this.startBgrMsgChannel("sendTransactions", {
       from: this.account.address,
       transactions: [transaction.toPlainObject()],
     });
 
-    return Transaction.fromPlainObject(txResponse[0]);
+    return this.getTransactionFactory().fromPlainObject(txResponse[0]);
   }
 
-  async signTransaction(transaction: Transaction): Promise<Transaction> {
+  async signTransaction(transaction: ITransaction): Promise<ISignedTransaction> {
     const txResponse = await this.startBgrMsgChannel("signTransactions", {
       from: this.account.address,
       transactions: [transaction.toPlainObject()],
     });
-    return Transaction.fromPlainObject(txResponse[0]);
+    return this.getTransactionFactory().fromPlainObject(txResponse[0]);
   }
 
   async signTransactions(
-    transactions: Array<Transaction>
-  ): Promise<Array<Transaction>> {
+    transactions: Array<ITransaction>
+  ): Promise<Array<ITransaction>> {
     transactions = transactions.map((transaction) =>
       transaction.toPlainObject()
     );
@@ -122,8 +121,12 @@ export class ExtensionProvider implements IDappProvider {
       transactions: transactions,
     });
     try {
+      // TODO: Find out whether transaction.applySignature() is better suited here,
+      // It seems that the extension only sets "sender" and "signature" 
+      // (version, nonce, chainID, gasLimit etc. do not seem to ever be overridden).
+      // If so, we don't need factories here.
       txResponse = txResponse.map((transaction: any) =>
-        Transaction.fromPlainObject(transaction)
+        this.getTransactionFactory().fromPlainObject(transaction)
       );
     } catch (error) {
       throw new Error("Transaction canceled.");
@@ -132,16 +135,20 @@ export class ExtensionProvider implements IDappProvider {
     return txResponse;
   }
 
-  async signMessage(message: SignableMessage): Promise<SignableMessage> {
+  async signMessage(message: ISignableMessage): Promise<ISignedMessage> {
     const data = {
       account: this.account.address,
+      // TODO: Why not message.serializeForSigningRaw()?
       message: message.message.toString(),
     };
     const signResponse = await this.startBgrMsgChannel("signMessage", data);
-    const signedMsg = new SignableMessage({
-      address: message.address,
+    // TODO: Find out whether message.applySignature() is better suited here.
+    // If so, we don't need factories here.
+    const signedMsg = this.getMessageFactory().fromPlainObject({
+      // TODO: Why not signResponse.address?
+      address: data.account,
       message: Buffer.from(signResponse.message),
-      signature: new Signature(signResponse.signature),
+      signature: signResponse.signature
     });
 
     return signedMsg;
@@ -179,5 +186,13 @@ export class ExtensionProvider implements IDappProvider {
       };
       window.addEventListener("message", eventHandler, false);
     });
+  }
+
+  private getTransactionFactory(): ITransactionFactory {
+    return TransactionFactoryLocator.getTransactionFactory();
+  }
+
+  private getMessageFactory(): ISignableMessageFactory {
+    return SignableMessageFactoryLocator.getMessageFactory();
   }
 }

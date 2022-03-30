@@ -1,4 +1,4 @@
-import { IDappProvider, ISignableMessage, ISignableMessageFactory, ITransaction, ITransactionFactory } from "./interface";
+import { IDappProvider, ISignableMessage, ISignableMessageFactory, ISignedMessage, ISignedTransaction, ITransaction, ITransactionFactory } from "./interface";
 import { SignableMessageFactoryLocator, TransactionFactoryLocator } from "./locators";
 
 declare global {
@@ -93,7 +93,7 @@ export class ExtensionProvider implements IDappProvider {
     return !!this.account;
   }
 
-  async sendTransaction(transaction: ITransaction): Promise<ITransaction> {
+  async sendTransaction(transaction: ITransaction): Promise<ISignedTransaction> {
     const txResponse = await this.startBgrMsgChannel("sendTransactions", {
       from: this.account.address,
       transactions: [transaction.toPlainObject()],
@@ -102,7 +102,7 @@ export class ExtensionProvider implements IDappProvider {
     return this.getTransactionFactory().fromPlainObject(txResponse[0]);
   }
 
-  async signTransaction(transaction: ITransaction): Promise<ITransaction> {
+  async signTransaction(transaction: ITransaction): Promise<ISignedTransaction> {
     const txResponse = await this.startBgrMsgChannel("signTransactions", {
       from: this.account.address,
       transactions: [transaction.toPlainObject()],
@@ -121,6 +121,10 @@ export class ExtensionProvider implements IDappProvider {
       transactions: transactions,
     });
     try {
+      // TODO: Find out whether transaction.applySignature() is better suited here,
+      // It seems that the extension only sets "sender" and "signature" 
+      // (version, nonce, chainID, gasLimit etc. do not seem to ever be overridden).
+      // If so, we don't need factories here.
       txResponse = txResponse.map((transaction: any) =>
         this.getTransactionFactory().fromPlainObject(transaction)
       );
@@ -131,15 +135,17 @@ export class ExtensionProvider implements IDappProvider {
     return txResponse;
   }
 
-  async signMessage(message: ISignableMessage): Promise<ISignableMessage> {
+  async signMessage(message: ISignableMessage): Promise<ISignedMessage> {
     const data = {
       account: this.account.address,
       // TODO: Why not message.serializeForSigningRaw()?
       message: message.message.toString(),
     };
     const signResponse = await this.startBgrMsgChannel("signMessage", data);
+    // TODO: Find out whether message.applySignature() is better suited here.
+    // If so, we don't need factories here.
     const signedMsg = this.getMessageFactory().fromPlainObject({
-      // TODO: why not signResponse.address?
+      // TODO: Why not signResponse.address?
       address: data.account,
       message: Buffer.from(signResponse.message),
       signature: signResponse.signature

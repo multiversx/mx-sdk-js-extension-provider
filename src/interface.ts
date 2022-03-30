@@ -1,6 +1,3 @@
-import { Transaction } from "../transaction";
-import {SignableMessage} from "../signableMessage";
-
 export interface IDappProvider {
     init(): Promise<boolean>;
     login(options?: {callbackUrl?: string; token?: string; addressIndex?: number}): Promise<string>;
@@ -8,16 +5,24 @@ export interface IDappProvider {
     getAddress(): Promise<string>;
     isInitialized(): boolean;
     isConnected(): Promise<boolean>;
-    sendTransaction(transaction: Transaction, options?: {callbackUrl?: string}): Promise<Transaction>;
-    signTransaction(transaction: Transaction, options?: {callbackUrl?: string}): Promise<Transaction>;
-    signTransactions(transaction: Array<Transaction>, options?: {callbackUrl?: string}): Promise<Array<Transaction>>;
-    signMessage(transaction: SignableMessage, options?: {callbackUrl?: string}): Promise<SignableMessage>;
+    sendTransaction(transaction: ITransaction, options?: {callbackUrl?: string}): Promise<ITransaction>;
+    signTransaction(transaction: ITransaction, options?: {callbackUrl?: string}): Promise<ITransaction>;
+    signTransactions(transaction: Array<ITransaction>, options?: {callbackUrl?: string}): Promise<Array<ITransaction>>;
+    signMessage(transaction: ISignableMessage, options?: {callbackUrl?: string}): Promise<ISignableMessage>;
 }
 
-export interface IDappMessageEvent extends MessageEvent {
-    data: {
-        type: string;
-        data: any;
-        error: string;
-    };
+export interface ITransaction {
+    toPlainObject(): any;
+}
+
+export interface ISignableMessage {
+    message: Buffer;
+}
+
+export interface ITransactionFactory {
+    fromPlainObject(obj: any): ITransaction;
+}
+
+export interface ISignableMessageFactory {
+    fromPlainObject(obj: any): ISignableMessage;
 }

@@ -31,6 +31,8 @@ Make sure you have the package `http-server` installed globally.
 npm install --global http-server
 ```
 
+Furthermore, make sure you install the browser extension `Maiar DeFi Wallet` in advance.
+
 When you are ready, build the examples:
 
 ```

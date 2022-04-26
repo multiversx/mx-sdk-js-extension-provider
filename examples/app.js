@@ -1,71 +1,98 @@
+import assert from "assert";
 import { ExtensionProvider } from "../out/extensionProvider";
-import { TransactionFactoryLocator, SignableMessageFactoryLocator } from "../out/locators";
+import { Address } from "../out/primitives";
 
-export async function main() {
+export async function login() {
     let provider = ExtensionProvider.getInstance();
     await provider.init();
     let address = await provider.login();
     console.log("Address:", address);
+}
 
-    // Setup transaction factory (dependency of extension provider).
-    TransactionFactoryLocator.setTransactionFactory({
-        fromPlainObject: function(obj) {
-            console.log("transactionFactory.fromPlainObject()");
-            console.log(obj);
-            // In production, if using erdjs, a Transaction object could be created & returned.
-            return obj;
-        }
+export async function signTransactions() {
+    let provider = ExtensionProvider.getInstance();
+
+    let firstTransaction = new DummyTransaction({
+        nonce: 42,
+        value: "1",
+        receiver: new Address("erd1uv40ahysflse896x4ktnh6ecx43u7cmy9wnxnvcyp7deg299a4sq6vaywa"),
+        gasPrice: 1000000000,
+        gasLimit: 50000,
+        data: "",
+        chainID: "T",
+        version: 1
     });
 
-    // Setup message factory (dependency of extension provider).
-    SignableMessageFactoryLocator.setMessageFactory({
-        fromPlainObject: function(obj) {
-            console.log("messageFactory.fromPlainObject()");
-            console.log(obj);
-            // In production, if using erdjs, a SignableMessage object could be created & returned.
-            return obj;
-        }
-    });
+    let firstTransactionSigned = await provider.signTransaction(firstTransaction);
 
-    // Sign a transaction
-    let firstTransaction = await provider.signTransaction({
-        toPlainObject: function() {
-            return {
-                nonce: 42,
-                value: "1",
-                receiver: "erd1uv40ahysflse896x4ktnh6ecx43u7cmy9wnxnvcyp7deg299a4sq6vaywa",
-                gasPrice: 1000000000,
-                gasLimit: 50000,
-                data: "",
-                chainID: "T"
-            };
-        }
-    });
-
+    assert(firstTransaction === firstTransactionSigned, "The extension provider should return the same object passed as input");
     console.log("First transaction, upon signing:");
     console.log(firstTransaction);
+}
 
-    // Sign & broadcast another transaction.
-    // This should fail (bad nonce etc.)
-    await provider.sendTransaction({
-        toPlainObject: function() {
-            return {
-                nonce: 43,
-                value: "1",
-                receiver: "erd1uv40ahysflse896x4ktnh6ecx43u7cmy9wnxnvcyp7deg299a4sq6vaywa",
-                gasPrice: 1000000000,
-                gasLimit: 200000,
-                data: Buffer.from("hello").toString("base64"),
-                chainID: "T"
-            };
-        }
+export async function signMessages() {
+    let provider = ExtensionProvider.getInstance();
+
+    let message = new DummyMessage({
+        message: Buffer.from("hello")
     });
+    let messageSigned = await provider.signMessage(message);
 
-    // Sign a message.
-    let message = await provider.signMessage({
-        message: "hello"
-    });
-
+    assert(message === messageSigned, "The extension provider should return the same object passed as input");
     console.log("Message, upon signing:");
-    console.log(message);
+    console.log(messageSigned);
+}
+
+class DummyTransaction {
+    nonce = 0;
+    value = "";
+    receiver = null;
+    sender = null;
+    gasPrice = 0;
+    gasLimit = 0;
+    data = "";
+    chainID = "";
+    version = 0;
+    options = undefined;
+    signature = null;
+
+    constructor(init) {
+        Object.assign(this, init);
+    }
+
+    toPlainObject() {
+        return {
+            nonce: this.nonce,
+            value: this.value,
+            receiver: this.receiver.bech32(),
+            gasPrice: this.gasPrice,
+            gasLimit: this.gasLimit,
+            data: this.data,
+            chainID: this.chainID,
+            version: this.version,
+            options: this.options
+        };
+    }
+
+    applySignature(signature, signedBy) {
+        console.log("applySignature()", signature.hex(), signedBy.bech32());
+        this.signature = signature;
+        this.sender = signedBy;
+    }
+}
+
+class DummyMessage {
+    address = null;
+    message = Buffer.from("");
+    signature = null;
+
+    constructor(init) {
+        Object.assign(this, init);
+    }
+
+    applySignature(signature, signedBy) {
+        console.log("applySignature()", signature.hex(), signedBy.bech32());
+        this.signature = signature;
+        this.address = signedBy;
+    }
 }

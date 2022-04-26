@@ -1,4 +1,4 @@
-import { IDappProvider, ISignableMessage, ITransaction } from "./interface";
+import { ISignableMessage, ITransaction } from "./interface";
 import { Address, Signature } from "./primitives";
 
 declare global {
@@ -13,7 +13,7 @@ interface IExtensionAccount {
   signature?: string;
 }
 
-export class ExtensionProvider implements IDappProvider {
+export class ExtensionProvider {
   public account: IExtensionAccount;
   private initialized: boolean = false;
   private static _instance: ExtensionProvider = new ExtensionProvider();
@@ -91,19 +91,6 @@ export class ExtensionProvider implements IDappProvider {
 
   async isConnected(): Promise<boolean> {
     return !!this.account;
-  }
-
-  // QUESTION FOR REVIEW: perhaps drop this, and let the client broadcast the transactions, instead?
-  async sendTransaction<T extends ITransaction>(transaction: T): Promise<T> {
-    const txResponse = await this.startBgrMsgChannel("sendTransactions", {
-      from: this.account.address,
-      transactions: [transaction.toPlainObject()],
-    });
-
-    let plainTransaction = txResponse[0];
-    transaction.applySignature(new Signature(plainTransaction.signature), new Address(this.account.address));
-
-    return transaction;
   }
 
   async signTransaction<T extends ITransaction>(transaction: T): Promise<T> {

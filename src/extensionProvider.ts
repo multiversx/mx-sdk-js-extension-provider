@@ -1,5 +1,5 @@
-import { IDappProvider, ISignableMessage, ISignableMessageFactory, ISignedMessage, ISignedTransaction, ITransaction, ITransactionFactory } from "./interface";
-import { SignableMessageFactoryLocator, TransactionFactoryLocator } from "./locators";
+import { IDappProvider, ISignableMessage, ITransaction } from "./interface";
+import { Address, Signature } from "./primitives";
 
 declare global {
   interface Window {
@@ -17,7 +17,7 @@ export class ExtensionProvider implements IDappProvider {
   public account: IExtensionAccount;
   private initialized: boolean = false;
   private static _instance: ExtensionProvider = new ExtensionProvider();
-  
+
   private constructor() {
     if (ExtensionProvider._instance) {
       throw new Error(
@@ -93,26 +93,32 @@ export class ExtensionProvider implements IDappProvider {
     return !!this.account;
   }
 
-  async sendTransaction(transaction: ITransaction): Promise<ISignedTransaction> {
+  // QUESTION FOR REVIEW: perhaps drop this, and let the client broadcast the transactions, instead?
+  async sendTransaction<T extends ITransaction>(transaction: T): Promise<T> {
     const txResponse = await this.startBgrMsgChannel("sendTransactions", {
       from: this.account.address,
       transactions: [transaction.toPlainObject()],
     });
 
-    return this.getTransactionFactory().fromPlainObject(txResponse[0]);
+    let plainTransaction = txResponse[0];
+    transaction.applySignature(new Signature(plainTransaction.signature), new Address(this.account.address));
+
+    return transaction;
   }
 
-  async signTransaction(transaction: ITransaction): Promise<ISignedTransaction> {
+  async signTransaction<T extends ITransaction>(transaction: T): Promise<T> {
     const txResponse = await this.startBgrMsgChannel("signTransactions", {
       from: this.account.address,
       transactions: [transaction.toPlainObject()],
     });
-    return this.getTransactionFactory().fromPlainObject(txResponse[0]);
+
+    let plainTransaction = txResponse[0];
+    transaction.applySignature(new Signature(plainTransaction.signature), new Address(this.account.address));
+
+    return transaction;
   }
 
-  async signTransactions(
-    transactions: Array<ITransaction>
-  ): Promise<Array<ITransaction>> {
+  async signTransactions<T extends ITransaction>(transactions: Array<T>): Promise<Array<T>> {
     transactions = transactions.map((transaction) =>
       transaction.toPlainObject()
     );
@@ -121,37 +127,27 @@ export class ExtensionProvider implements IDappProvider {
       transactions: transactions,
     });
     try {
-      // TODO: Find out whether transaction.applySignature() is better suited here,
-      // It seems that the extension only sets "sender" and "signature" 
-      // (version, nonce, chainID, gasLimit etc. do not seem to ever be overridden).
-      // If so, we don't need factories here.
-      txResponse = txResponse.map((transaction: any) =>
-        this.getTransactionFactory().fromPlainObject(transaction)
-      );
+      for (let i = 0; i < transactions.length; i++) {
+        let transaction = transactions[i];
+        let plainTransaction = txResponse[i];
+        
+        transaction.applySignature(new Signature(plainTransaction.signature), new Address(this.account.address));
+      }
     } catch (error) {
       throw new Error("Transaction canceled.");
     }
 
-    return txResponse;
+    return transactions;
   }
 
-  async signMessage(message: ISignableMessage): Promise<ISignedMessage> {
+  async signMessage<T extends ISignableMessage>(message: T): Promise<T> {
     const data = {
       account: this.account.address,
-      // TODO: Why not message.serializeForSigningRaw()?
-      message: message.message.toString(),
+      message: message.message.toString()
     };
     const signResponse = await this.startBgrMsgChannel("signMessage", data);
-    // TODO: Find out whether message.applySignature() is better suited here.
-    // If so, we don't need factories here.
-    const signedMsg = this.getMessageFactory().fromPlainObject({
-      // TODO: Why not signResponse.address?
-      address: data.account,
-      message: Buffer.from(signResponse.message),
-      signature: signResponse.signature
-    });
-
-    return signedMsg;
+    message.applySignature(new Signature(signResponse.signature), new Address(this.account.address));
+    return message;
   }
 
   cancelAction() {
@@ -186,13 +182,5 @@ export class ExtensionProvider implements IDappProvider {
       };
       window.addEventListener("message", eventHandler, false);
     });
-  }
-
-  private getTransactionFactory(): ITransactionFactory {
-    return TransactionFactoryLocator.getTransactionFactory();
-  }
-
-  private getMessageFactory(): ISignableMessageFactory {
-    return SignableMessageFactoryLocator.getMessageFactory();
   }
 }

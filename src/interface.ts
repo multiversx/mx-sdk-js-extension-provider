@@ -5,30 +5,26 @@ export interface IDappProvider {
     getAddress(): Promise<string>;
     isInitialized(): boolean;
     isConnected(): Promise<boolean>;
-    sendTransaction(transaction: ITransaction, options?: {callbackUrl?: string}): Promise<ISignedTransaction>;
-    signTransaction(transaction: ITransaction, options?: {callbackUrl?: string}): Promise<ISignedTransaction>;
-    signTransactions(transaction: Array<ITransaction>, options?: {callbackUrl?: string}): Promise<Array<ISignedTransaction>>;
-    signMessage(transaction: ISignableMessage, options?: {callbackUrl?: string}): Promise<ISignedMessage>;
+    sendTransaction<T extends ITransaction>(transaction: T, options?: {callbackUrl?: string}): Promise<T>;
+    signTransaction<T extends ITransaction>(transaction: T, options?: {callbackUrl?: string}): Promise<T>;
+    signTransactions<T extends ITransaction>(transaction: Array<T>, options?: {callbackUrl?: string}): Promise<Array<T>>;
+    signMessage<T extends ISignableMessage>(message: T, options?: {callbackUrl?: string}): Promise<T>;
+}
+
+export interface ISignature {
+    hex(): string;
+}
+
+export interface IAddress {
+    bech32(): string;
 }
 
 export interface ITransaction {
     toPlainObject(): any;
-}
-
-export interface ISignedTransaction {
+    applySignature(signature: ISignature, signedBy: IAddress): void;
 }
 
 export interface ISignableMessage {
     message: Buffer;
-}
-
-export interface ISignedMessage {
-}
-
-export interface ITransactionFactory {
-    fromPlainObject(obj: any): ISignedTransaction;
-}
-
-export interface ISignableMessageFactory {
-    fromPlainObject(obj: any): ISignedMessage;
+    applySignature(signature: ISignature, signedBy: IAddress): void;
 }

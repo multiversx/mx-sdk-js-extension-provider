@@ -94,34 +94,25 @@ export class ExtensionProvider {
   }
 
   async signTransaction<T extends ITransaction>(transaction: T): Promise<T> {
-    const txResponse = await this.startBgrMsgChannel("signTransactions", {
-      from: this.account.address,
-      transactions: [transaction.toPlainObject()],
-    });
-
-    let plainTransaction = txResponse[0];
-    transaction.applySignature(new Signature(plainTransaction.signature), new Address(this.account.address));
-
-    return transaction;
+    let response = await this.signTransactions([transaction]);
+    return response[0];
   }
 
   async signTransactions<T extends ITransaction>(transactions: Array<T>): Promise<Array<T>> {
-    transactions = transactions.map((transaction) =>
-      transaction.toPlainObject()
-    );
-    let txResponse = await this.startBgrMsgChannel("signTransactions", {
+    let extensionResponse = await this.startBgrMsgChannel("signTransactions", {
       from: this.account.address,
-      transactions: transactions,
+      transactions: transactions.map(transaction => transaction.toPlainObject()),
     });
+
     try {
       for (let i = 0; i < transactions.length; i++) {
         let transaction = transactions[i];
-        let plainTransaction = txResponse[i];
-        
-        transaction.applySignature(new Signature(plainTransaction.signature), new Address(this.account.address));
+        let plainSignedTransaction = extensionResponse[i];
+
+        transaction.applySignature(new Signature(plainSignedTransaction.signature), new Address(this.account.address));
       }
-    } catch (error) {
-      throw new Error("Transaction canceled.");
+    } catch (error: any) {
+      throw new Error(`Transaction canceled: ${error.message}.`);
     }
 
     return transactions;
@@ -132,8 +123,8 @@ export class ExtensionProvider {
       account: this.account.address,
       message: message.message.toString()
     };
-    const signResponse = await this.startBgrMsgChannel("signMessage", data);
-    message.applySignature(new Signature(signResponse.signature), new Address(this.account.address));
+    const extensionResponse = await this.startBgrMsgChannel("signMessage", data);
+    message.applySignature(new Signature(extensionResponse.signature), new Address(this.account.address));
     return message;
   }
 

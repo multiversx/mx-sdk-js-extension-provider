@@ -8,8 +8,8 @@ export class DummyMessage {
     }
 
     applySignature(signature, signedBy) {
-        console.log("applySignature()", signature.hex(), signedBy.bech32());
-        this.signature = signature;
-        this.address = signedBy;
+        this.signature = signature.hex();
+        this.address = signedBy.bech32();
+        console.log("applySignature()", this.signature, this.signedBy);
     }
 }

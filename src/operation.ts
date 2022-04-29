@@ -1,4 +1,4 @@
-enum Operation {
+export enum Operation {
     Connect = "connect",
     Logout = "logout",
     SignTransactions = "signTransactions",

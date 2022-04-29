@@ -8,7 +8,8 @@ export async function login() {
     let provider = ExtensionProvider.getInstance();
     await provider.init();
     let address = await provider.login();
-    console.log("Address:", address);
+
+    alert(`Address: ${address}`);
 }
 
 export async function signTransactions() {
@@ -30,6 +31,8 @@ export async function signTransactions() {
     assert(firstTransaction === firstTransactionSigned, "The extension provider should return the same object passed as input");
     console.log("First transaction, upon signing:");
     console.log(firstTransaction);
+
+    alert(`Signature: ${firstTransaction.signature}`);
 }
 
 export async function signMessages() {
@@ -43,6 +46,8 @@ export async function signMessages() {
     assert(message === messageSigned, "The extension provider should return the same object passed as input");
     console.log("Message, upon signing:");
     console.log(messageSigned);
+
+    alert(`Signature: ${message.signature}`);
 }
 
 

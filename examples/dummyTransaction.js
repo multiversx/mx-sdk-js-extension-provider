@@ -30,8 +30,8 @@ export class DummyTransaction {
     }
 
     applySignature(signature, signedBy) {
-        console.log("applySignature()", signature.hex(), signedBy.bech32());
-        this.signature = signature;
-        this.sender = signedBy;
+        this.signature = signature.hex();
+        this.address = signedBy.bech32();
+        console.log("applySignature()", this.signature, this.signedBy);
     }
 }

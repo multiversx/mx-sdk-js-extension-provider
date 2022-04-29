@@ -1,5 +1,6 @@
 import { ISignableMessage, ITransaction } from "./interface";
 import { Address, Signature } from "./primitives";
+import { Operation } from "./operation";
 
 declare global {
   interface Window {

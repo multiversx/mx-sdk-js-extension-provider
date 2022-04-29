@@ -57,7 +57,7 @@ export class ExtensionProvider {
     }
     const { token } = options;
     const data = token ? token : "";
-    await this.startBgrMsgChannel("connect", data);
+    await this.startBgrMsgChannel(Operation.Connect, data);
     return this.account.address;
   }
 
@@ -68,7 +68,7 @@ export class ExtensionProvider {
       );
     }
     try {
-      await this.startBgrMsgChannel("logout", this.account.address);
+      await this.startBgrMsgChannel(Operation.Logout, this.account.address);
     } catch (error) {
       console.warn("Extension origin url is already cleared!", error);
     }
@@ -94,12 +94,12 @@ export class ExtensionProvider {
   }
 
   async signTransaction<T extends ITransaction>(transaction: T): Promise<T> {
-    let response = await this.signTransactions([transaction]);
+    const response = await this.signTransactions([transaction]);
     return response[0];
   }
 
   async signTransactions<T extends ITransaction>(transactions: Array<T>): Promise<Array<T>> {
-    let extensionResponse = await this.startBgrMsgChannel("signTransactions", {
+    const extensionResponse = await this.startBgrMsgChannel(Operation.SignTransactions, {
       from: this.account.address,
       transactions: transactions.map(transaction => transaction.toPlainObject()),
     });
@@ -123,13 +123,13 @@ export class ExtensionProvider {
       account: this.account.address,
       message: message.message.toString()
     };
-    const extensionResponse = await this.startBgrMsgChannel("signMessage", data);
+    const extensionResponse = await this.startBgrMsgChannel(Operation.SignMessage, data);
     message.applySignature(new Signature(extensionResponse.signature), new Address(this.account.address));
     return message;
   }
 
   cancelAction() {
-    return this.startBgrMsgChannel("cancelAction", {});
+    return this.startBgrMsgChannel(Operation.CancelAction, {});
   }
 
   private startBgrMsgChannel(

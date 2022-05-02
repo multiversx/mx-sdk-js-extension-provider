@@ -1,4 +1,3 @@
-import assert from "assert";
 import { ExtensionProvider } from "../out/extensionProvider";
 import { Address } from "../out/primitives";
 import { DummyMessage } from "./dummyMessage";
@@ -26,13 +25,24 @@ export async function signTransactions() {
         version: 1
     });
 
-    let firstTransactionSigned = await provider.signTransaction(firstTransaction);
+    let secondTransaction = new DummyTransaction({
+        nonce: 43,
+        value: "100000000",
+        receiver: new Address("erd1uv40ahysflse896x4ktnh6ecx43u7cmy9wnxnvcyp7deg299a4sq6vaywa"),
+        gasPrice: 1000000000,
+        gasLimit: 50000,
+        data: "hello world",
+        chainID: "T",
+        version: 1
+    });
 
-    assert(firstTransaction === firstTransactionSigned, "The extension provider should return the same object passed as input");
+    await provider.signTransactions([firstTransaction, secondTransaction]);
     console.log("First transaction, upon signing:");
     console.log(firstTransaction);
+    console.log("Second transaction, upon signing:");
+    console.log(secondTransaction);
 
-    alert(`Signature: ${firstTransaction.signature}`);
+    alert(`Signatures: [${firstTransaction.signature}, ${secondTransaction.signature}]`);
 }
 
 export async function signMessages() {
@@ -41,11 +51,10 @@ export async function signMessages() {
     let message = new DummyMessage({
         message: Buffer.from("hello")
     });
-    let messageSigned = await provider.signMessage(message);
 
-    assert(message === messageSigned, "The extension provider should return the same object passed as input");
+    await provider.signMessage(message);
     console.log("Message, upon signing:");
-    console.log(messageSigned);
+    console.log(message);
 
     alert(`Signature: ${message.signature}`);
 }

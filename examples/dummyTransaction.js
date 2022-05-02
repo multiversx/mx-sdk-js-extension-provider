@@ -22,7 +22,7 @@ export class DummyTransaction {
             receiver: this.receiver.bech32(),
             gasPrice: this.gasPrice,
             gasLimit: this.gasLimit,
-            data: this.data,
+            data: Buffer.from(this.data).toString("base64"),
             chainID: this.chainID,
             version: this.version,
             options: this.options

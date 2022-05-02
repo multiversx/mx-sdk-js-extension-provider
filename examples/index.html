@@ -7,13 +7,23 @@
 
 <body>
     <div>
-        <button onclick="main()">Run example</button>
+        <button onclick="login()">Login</button>
+        <button onclick="signTransactions()">Sign transactions</button>
+        <button onclick="signMessages()">Sign messages</button>
     </div>
 
     <script src="../out-examples/app.js"></script>
     <script>
-        async function main() {
-            await app.main();
+        async function login() {
+            await app.login();
+        }
+
+        async function signTransactions() {
+            await app.signTransactions();
+        }
+
+        async function signMessages() {
+            await app.signMessages();
         }
     </script>
 </body>

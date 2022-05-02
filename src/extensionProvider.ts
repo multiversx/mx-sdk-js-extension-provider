@@ -1,5 +1,6 @@
-import { IDappProvider, ISignableMessage, ISignableMessageFactory, ISignedMessage, ISignedTransaction, ITransaction, ITransactionFactory } from "./interface";
-import { SignableMessageFactoryLocator, TransactionFactoryLocator } from "./locators";
+import { ISignableMessage, ITransaction } from "./interface";
+import { Address, Signature } from "./primitives";
+import { Operation } from "./operation";
 
 declare global {
   interface Window {
@@ -13,11 +14,11 @@ interface IExtensionAccount {
   signature?: string;
 }
 
-export class ExtensionProvider implements IDappProvider {
+export class ExtensionProvider {
   public account: IExtensionAccount;
   private initialized: boolean = false;
   private static _instance: ExtensionProvider = new ExtensionProvider();
-  
+
   private constructor() {
     if (ExtensionProvider._instance) {
       throw new Error(
@@ -57,7 +58,7 @@ export class ExtensionProvider implements IDappProvider {
     }
     const { token } = options;
     const data = token ? token : "";
-    await this.startBgrMsgChannel("connect", data);
+    await this.startBgrMsgChannel(Operation.Connect, data);
     return this.account.address;
   }
 
@@ -68,7 +69,7 @@ export class ExtensionProvider implements IDappProvider {
       );
     }
     try {
-      await this.startBgrMsgChannel("logout", this.account.address);
+      await this.startBgrMsgChannel(Operation.Logout, this.account.address);
     } catch (error) {
       console.warn("Extension origin url is already cleared!", error);
     }
@@ -93,69 +94,40 @@ export class ExtensionProvider implements IDappProvider {
     return !!this.account;
   }
 
-  async sendTransaction(transaction: ITransaction): Promise<ISignedTransaction> {
-    const txResponse = await this.startBgrMsgChannel("sendTransactions", {
-      from: this.account.address,
-      transactions: [transaction.toPlainObject()],
-    });
-
-    return this.getTransactionFactory().fromPlainObject(txResponse[0]);
+  async signTransaction(transaction: ITransaction) {
+    await this.signTransactions([transaction]);
   }
 
-  async signTransaction(transaction: ITransaction): Promise<ISignedTransaction> {
-    const txResponse = await this.startBgrMsgChannel("signTransactions", {
+  async signTransactions(transactions: Array<ITransaction>) {
+    const extensionResponse = await this.startBgrMsgChannel(Operation.SignTransactions, {
       from: this.account.address,
-      transactions: [transaction.toPlainObject()],
+      transactions: transactions.map(transaction => transaction.toPlainObject()),
     });
-    return this.getTransactionFactory().fromPlainObject(txResponse[0]);
-  }
 
-  async signTransactions(
-    transactions: Array<ITransaction>
-  ): Promise<Array<ITransaction>> {
-    transactions = transactions.map((transaction) =>
-      transaction.toPlainObject()
-    );
-    let txResponse = await this.startBgrMsgChannel("signTransactions", {
-      from: this.account.address,
-      transactions: transactions,
-    });
     try {
-      // TODO: Find out whether transaction.applySignature() is better suited here,
-      // It seems that the extension only sets "sender" and "signature" 
-      // (version, nonce, chainID, gasLimit etc. do not seem to ever be overridden).
-      // If so, we don't need factories here.
-      txResponse = txResponse.map((transaction: any) =>
-        this.getTransactionFactory().fromPlainObject(transaction)
-      );
-    } catch (error) {
-      throw new Error("Transaction canceled.");
-    }
+      for (let i = 0; i < transactions.length; i++) {
+        let transaction = transactions[i];
+        let plainSignedTransaction = extensionResponse[i];
 
-    return txResponse;
+        transaction.applySignature(new Signature(plainSignedTransaction.signature), new Address(this.account.address));
+      }
+    } catch (error: any) {
+      throw new Error(`Transaction canceled: ${error.message}.`);
+    }
   }
 
-  async signMessage(message: ISignableMessage): Promise<ISignedMessage> {
+  async signMessage(message: ISignableMessage) {
     const data = {
       account: this.account.address,
-      // TODO: Why not message.serializeForSigningRaw()?
-      message: message.message.toString(),
+      message: message.message.toString()
     };
-    const signResponse = await this.startBgrMsgChannel("signMessage", data);
-    // TODO: Find out whether message.applySignature() is better suited here.
-    // If so, we don't need factories here.
-    const signedMsg = this.getMessageFactory().fromPlainObject({
-      // TODO: Why not signResponse.address?
-      address: data.account,
-      message: Buffer.from(signResponse.message),
-      signature: signResponse.signature
-    });
-
-    return signedMsg;
+    const extensionResponse = await this.startBgrMsgChannel(Operation.SignMessage, data);
+    message.applySignature(new Signature(extensionResponse.signature), new Address(this.account.address));
+    return message;
   }
 
   cancelAction() {
-    return this.startBgrMsgChannel("cancelAction", {});
+    return this.startBgrMsgChannel(Operation.CancelAction, {});
   }
 
   private startBgrMsgChannel(
@@ -186,13 +158,5 @@ export class ExtensionProvider implements IDappProvider {
       };
       window.addEventListener("message", eventHandler, false);
     });
-  }
-
-  private getTransactionFactory(): ITransactionFactory {
-    return TransactionFactoryLocator.getTransactionFactory();
-  }
-
-  private getMessageFactory(): ISignableMessageFactory {
-    return SignableMessageFactoryLocator.getMessageFactory();
   }
 }

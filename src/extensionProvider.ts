@@ -1,6 +1,7 @@
 import { ISignableMessage, ITransaction } from "./interface";
 import { Address, Signature } from "./primitives";
 import { Operation } from "./operation";
+import { ErrCannotSignSingleTransaction } from "./errors";
 
 declare global {
   interface Window {
@@ -94,11 +95,17 @@ export class ExtensionProvider {
     return !!this.account;
   }
 
-  async signTransaction(transaction: ITransaction) {
-    await this.signTransactions([transaction]);
+  async signTransaction<T extends ITransaction>(transaction: T): Promise<T> {
+    const signedTransactions = await this.signTransactions([transaction]);
+    
+    if (signedTransactions.length != 1) {
+      throw new ErrCannotSignSingleTransaction();
+    }
+
+    return signedTransactions[0];
   }
 
-  async signTransactions(transactions: Array<ITransaction>) {
+  async signTransactions<T extends ITransaction>(transactions: T[]): Promise<T[]> {
     const extensionResponse = await this.startBgrMsgChannel(Operation.SignTransactions, {
       from: this.account.address,
       transactions: transactions.map(transaction => transaction.toPlainObject()),
@@ -106,17 +113,19 @@ export class ExtensionProvider {
 
     try {
       for (let i = 0; i < transactions.length; i++) {
-        let transaction = transactions[i];
-        let plainSignedTransaction = extensionResponse[i];
+        const transaction = transactions[i];
+        const plainSignedTransaction = extensionResponse[i];
 
         transaction.applySignature(new Signature(plainSignedTransaction.signature), new Address(this.account.address));
       }
+
+      return transactions;
     } catch (error: any) {
       throw new Error(`Transaction canceled: ${error.message}.`);
     }
   }
 
-  async signMessage(message: ISignableMessage) {
+  async signMessage<T extends ISignableMessage>(message: T): Promise<T> {
     const data = {
       account: this.account.address,
       message: message.message.toString()

@@ -94,11 +94,12 @@ export class ExtensionProvider {
     return !!this.account;
   }
 
-  async signTransaction(transaction: ITransaction) {
+  async signTransaction<T extends ITransaction>(transaction: T): Promise<T> {
     await this.signTransactions([transaction]);
+    return transaction;
   }
 
-  async signTransactions(transactions: Array<ITransaction>) {
+  async signTransactions<T extends ITransaction>(transactions: T[]): Promise<T[]> {
     const extensionResponse = await this.startBgrMsgChannel(Operation.SignTransactions, {
       from: this.account.address,
       transactions: transactions.map(transaction => transaction.toPlainObject()),
@@ -106,17 +107,19 @@ export class ExtensionProvider {
 
     try {
       for (let i = 0; i < transactions.length; i++) {
-        let transaction = transactions[i];
-        let plainSignedTransaction = extensionResponse[i];
+        const transaction = transactions[i];
+        const plainSignedTransaction = extensionResponse[i];
 
         transaction.applySignature(new Signature(plainSignedTransaction.signature), new Address(this.account.address));
       }
+
+      return transactions;
     } catch (error: any) {
       throw new Error(`Transaction canceled: ${error.message}.`);
     }
   }
 
-  async signMessage(message: ISignableMessage) {
+  async signMessage<T extends ISignableMessage>(message: T): Promise<T> {
     const data = {
       account: this.account.address,
       message: message.message.toString()

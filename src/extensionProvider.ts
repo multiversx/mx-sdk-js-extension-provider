@@ -1,6 +1,7 @@
 import { ISignableMessage, ITransaction } from "./interface";
 import { Address, Signature } from "./primitives";
 import { Operation } from "./operation";
+import { ErrCannotSignSingleTransaction } from "./errors";
 
 declare global {
   interface Window {
@@ -95,8 +96,13 @@ export class ExtensionProvider {
   }
 
   async signTransaction<T extends ITransaction>(transaction: T): Promise<T> {
-    await this.signTransactions([transaction]);
-    return transaction;
+    const signedTransactions = await this.signTransactions([transaction]);
+    
+    if (signedTransactions.length != 1) {
+      throw new ErrCannotSignSingleTransaction();
+    }
+
+    return signedTransactions[0];
   }
 
   async signTransactions<T extends ITransaction>(transactions: T[]): Promise<T[]> {

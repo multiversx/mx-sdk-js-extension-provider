@@ -10,11 +10,8 @@
     }
 }
 
-/**
- * Signals an incorrect setup.
- */
-export class ErrIncorrectSetup extends Err {
-    public constructor(message: string) {
-        super(`Incorrect setup: ${message}`);
+export class ErrCannotSignSingleTransaction extends Err {
+    public constructor() {
+        super("Cannot sign single transaction.");
     }
 }

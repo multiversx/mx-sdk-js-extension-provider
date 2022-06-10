@@ -1,5 +1,5 @@
-import { ExtensionProvider } from "../out/extensionProvider";
-import { Address } from "../out/primitives";
+import { ExtensionProvider } from "../src";
+import { Address } from "../src/primitives";
 import { DummyMessage } from "./dummyMessage";
 import { DummyTransaction } from "./dummyTransaction";
 

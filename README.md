@@ -2,7 +2,7 @@
 
 Signing provider for dApps: Maiar DeFi Wallet. 
 
-An integration sample can be found [here](examples/app.js). However, for all purposes, **we recommend using [dapp-core](https://github.com/ElrondNetwork/dapp-core)** instead of integrating the signing provider on your own.
+An integration sample can be found further down in the README. However, for all purposes, **we recommend using [dapp-core](https://github.com/ElrondNetwork/dapp-core)** instead of integrating the signing provider on your own.
 
 ## Distribution
 
@@ -25,24 +25,70 @@ npm install
 npm run compile
 ```
 
-### Running the examples
+###Usage example
 
-Make sure you have the package `http-server` installed globally.
-
+####Login
 ```
-npm install --global http-server
-```
-
-Furthermore, make sure you install the browser extension `Maiar DeFi Wallet` in advance.
-
-When you are ready, build the examples:
-
-```
-npm run compile-examples
+export async function login() {
+let provider = ExtensionProvider.getInstance();
+await provider.init();
+let address = await provider.login();
+    alert(`Address: ${address}`);
+}
 ```
 
-Start the server and navigate to `http://localhost:8080/examples/index.html`
+####Sign Transactions
 
 ```
-http-server --port=8080
+export async function signTransactions() {
+let provider = ExtensionProvider.getInstance();
+
+    let firstTransaction = new DummyTransaction({
+        nonce: 42,
+        value: "1",
+        receiver: new Address("erd1uv40ahysflse896x4ktnh6ecx43u7cmy9wnxnvcyp7deg299a4sq6vaywa"),
+        gasPrice: 1000000000,
+        gasLimit: 50000,
+        data: "",
+        chainID: "T",
+        version: 1
+    });
+
+    let secondTransaction = new DummyTransaction({
+        nonce: 43,
+        value: "100000000",
+        receiver: new Address("erd1uv40ahysflse896x4ktnh6ecx43u7cmy9wnxnvcyp7deg299a4sq6vaywa"),
+        gasPrice: 1000000000,
+        gasLimit: 50000,
+        data: "hello world",
+        chainID: "T",
+        version: 1
+    });
+
+    await provider.signTransactions([firstTransaction, secondTransaction]);
+    console.log("First transaction, upon signing:");
+    console.log(firstTransaction);
+    console.log("Second transaction, upon signing:");
+    console.log(secondTransaction);
+
+    alert(`Signatures: [${firstTransaction.signature}, ${secondTransaction.signature}]`);
+}
+```
+
+#### Sign Messages
+
+```
+export async function signMessages() {
+let provider = ExtensionProvider.getInstance();
+
+    let message = new DummyMessage({
+        message: Buffer.from("hello")
+    });
+
+    await provider.signMessage(message);
+    console.log("Message, upon signing:");
+    console.log(message);
+
+    alert(`Signature: ${message.signature}`);
+}
 ```

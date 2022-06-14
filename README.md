@@ -25,9 +25,9 @@ npm install
 npm run compile
 ```
 
-###Usage example
+### Usage example
 
-####Login
+#### Login
 ```
 export async function login() {
 let provider = ExtensionProvider.getInstance();
@@ -37,13 +37,13 @@ let address = await provider.login();
 }
 ```
 
-####Sign Transactions
+#### Sign Transactions
 
 ```
 export async function signTransactions() {
 let provider = ExtensionProvider.getInstance();
 
-    let firstTransaction = new DummyTransaction({
+    let firstTransaction = new Transaction({
         nonce: 42,
         value: "1",
         receiver: new Address("erd1uv40ahysflse896x4ktnh6ecx43u7cmy9wnxnvcyp7deg299a4sq6vaywa"),
@@ -54,7 +54,7 @@ let provider = ExtensionProvider.getInstance();
         version: 1
     });
 
-    let secondTransaction = new DummyTransaction({
+    let secondTransaction = new Transaction({
         nonce: 43,
         value: "100000000",
         receiver: new Address("erd1uv40ahysflse896x4ktnh6ecx43u7cmy9wnxnvcyp7deg299a4sq6vaywa"),
@@ -81,7 +81,7 @@ let provider = ExtensionProvider.getInstance();
 export async function signMessages() {
 let provider = ExtensionProvider.getInstance();
 
-    let message = new DummyMessage({
+    let message = new SignableMessage({
         message: Buffer.from("hello")
     });
 

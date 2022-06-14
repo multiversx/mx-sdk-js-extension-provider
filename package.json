@@ -1,6 +1,6 @@
 {
   "name": "@elrondnetwork/erdjs-extension-provider",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Signing provider for dApps: Maiar DeFi Wallet",
   "main": "out/index.js",
   "types": "out/index.d.js",
@@ -9,17 +9,13 @@
   ],
   "scripts": {
     "compile": "tsc -p tsconfig.json",
-    "compile-examples": "npm run compile && browserify examples/app.js -o out-examples/app.js --standalone app -p esmify",
     "pretest": "npm run compile",
     "prepare": "npm run compile"
   },
   "author": "ElrondNetwork",
   "license": "GPL-3.0-or-later",
-  "dependencies": {
-  },
   "devDependencies": {
     "@types/node": "17.0.23",
-    "browserify": "17.0.0",
     "esmify": "2.1.1",
     "typescript": "4.1.2"
   }

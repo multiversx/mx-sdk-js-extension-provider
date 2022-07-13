@@ -92,7 +92,7 @@ export class ExtensionProvider {
   }
 
   async isConnected(): Promise<boolean> {
-    return !!this.account;
+    return Boolean(this.account.address);
   }
 
   async signTransaction<T extends ITransaction>(transaction: T): Promise<T> {

@@ -3,8 +3,6 @@ import { Address, Signature } from "./primitives";
 import { Operation } from "./operation";
 import { ErrAccountNotConnected, ErrCannotSignSingleTransaction } from "./errors";
 
-const disconnectedAccount = { address: "" };
-
 declare global {
   interface Window {
     elrondWallet: { extensionId: string };
@@ -18,7 +16,7 @@ interface IExtensionAccount {
 }
 
 export class ExtensionProvider {
-  public account: IExtensionAccount;
+  public account: IExtensionAccount = { address: "" };
   private initialized: boolean = false;
   private static _instance: ExtensionProvider = new ExtensionProvider();
 
@@ -28,7 +26,6 @@ export class ExtensionProvider {
         "Error: Instantiation failed: Use ExtensionProvider.getInstance() instead of new."
       );
     }
-    this.account = disconnectedAccount;
     ExtensionProvider._instance = this;
   }
 
@@ -73,12 +70,16 @@ export class ExtensionProvider {
     }
     try {
       await this.startBgrMsgChannel(Operation.Logout, this.account.address);
-      this.account = disconnectedAccount;
+      this.disconnect();
     } catch (error) {
       console.warn("Extension origin url is already cleared!", error);
     }
 
     return true;
+  }
+
+  private disconnect() {
+    this.account = { address: "" };
   }
 
   async getAddress(): Promise<string> {

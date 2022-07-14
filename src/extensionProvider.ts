@@ -1,7 +1,9 @@
 import { ISignableMessage, ITransaction } from "./interface";
 import { Address, Signature } from "./primitives";
 import { Operation } from "./operation";
-import { ErrCannotSignSingleTransaction } from "./errors";
+import { ErrAccountNotConnected, ErrCannotSignSingleTransaction } from "./errors";
+
+const disconnectedAccount = { address: "" };
 
 declare global {
   interface Window {
@@ -26,7 +28,7 @@ export class ExtensionProvider {
         "Error: Instantiation failed: Use ExtensionProvider.getInstance() instead of new."
       );
     }
-    this.account = { address: "" };
+    this.account = disconnectedAccount;
     ExtensionProvider._instance = this;
   }
 
@@ -71,6 +73,7 @@ export class ExtensionProvider {
     }
     try {
       await this.startBgrMsgChannel(Operation.Logout, this.account.address);
+      this.account = disconnectedAccount;
     } catch (error) {
       console.warn("Extension origin url is already cleared!", error);
     }
@@ -91,11 +94,13 @@ export class ExtensionProvider {
     return this.initialized;
   }
 
-  async isConnected(): Promise<boolean> {
+  isConnected(): boolean {
     return Boolean(this.account.address);
   }
 
   async signTransaction<T extends ITransaction>(transaction: T): Promise<T> {
+    this.ensureConnected();
+
     const signedTransactions = await this.signTransactions([transaction]);
     
     if (signedTransactions.length != 1) {
@@ -105,7 +110,15 @@ export class ExtensionProvider {
     return signedTransactions[0];
   }
 
+  private ensureConnected() {
+    if (!this.isConnected()) {
+      throw new ErrAccountNotConnected();
+    }
+  }
+
   async signTransactions<T extends ITransaction>(transactions: T[]): Promise<T[]> {
+    this.ensureConnected();
+
     const extensionResponse = await this.startBgrMsgChannel(Operation.SignTransactions, {
       from: this.account.address,
       transactions: transactions.map(transaction => transaction.toPlainObject()),
@@ -126,6 +139,8 @@ export class ExtensionProvider {
   }
 
   async signMessage<T extends ISignableMessage>(message: T): Promise<T> {
+    this.ensureConnected();
+
     const data = {
       account: this.account.address,
       message: message.message.toString()

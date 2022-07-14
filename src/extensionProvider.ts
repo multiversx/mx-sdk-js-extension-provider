@@ -95,7 +95,8 @@ export class ExtensionProvider {
     return this.initialized;
   }
 
-  isConnected(): boolean {
+  // TODO: In V3, this will not be an async function anymore.
+  async isConnected(): Promise<boolean> {
     return Boolean(this.account.address);
   }
 
@@ -112,7 +113,7 @@ export class ExtensionProvider {
   }
 
   private ensureConnected() {
-    if (!this.isConnected()) {
+    if (!this.account.address) {
       throw new ErrAccountNotConnected();
     }
   }

@@ -1,7 +1,7 @@
 import { ISignableMessage, ITransaction } from "./interface";
 import { Address, Signature } from "./primitives";
 import { Operation } from "./operation";
-import { ErrCannotSignSingleTransaction } from "./errors";
+import { ErrAccountNotConnected, ErrCannotSignSingleTransaction } from "./errors";
 
 declare global {
   interface Window {
@@ -16,7 +16,7 @@ interface IExtensionAccount {
 }
 
 export class ExtensionProvider {
-  public account: IExtensionAccount;
+  public account: IExtensionAccount = { address: "" };
   private initialized: boolean = false;
   private static _instance: ExtensionProvider = new ExtensionProvider();
 
@@ -26,7 +26,6 @@ export class ExtensionProvider {
         "Error: Instantiation failed: Use ExtensionProvider.getInstance() instead of new."
       );
     }
-    this.account = { address: "" };
     ExtensionProvider._instance = this;
   }
 
@@ -71,11 +70,16 @@ export class ExtensionProvider {
     }
     try {
       await this.startBgrMsgChannel(Operation.Logout, this.account.address);
+      this.disconnect();
     } catch (error) {
       console.warn("Extension origin url is already cleared!", error);
     }
 
     return true;
+  }
+
+  private disconnect() {
+    this.account = { address: "" };
   }
 
   async getAddress(): Promise<string> {
@@ -91,11 +95,14 @@ export class ExtensionProvider {
     return this.initialized;
   }
 
+  // TODO: In V3, this will not be an async function anymore.
   async isConnected(): Promise<boolean> {
-    return !!this.account;
+    return Boolean(this.account.address);
   }
 
   async signTransaction<T extends ITransaction>(transaction: T): Promise<T> {
+    this.ensureConnected();
+
     const signedTransactions = await this.signTransactions([transaction]);
     
     if (signedTransactions.length != 1) {
@@ -105,7 +112,15 @@ export class ExtensionProvider {
     return signedTransactions[0];
   }
 
+  private ensureConnected() {
+    if (!this.account.address) {
+      throw new ErrAccountNotConnected();
+    }
+  }
+
   async signTransactions<T extends ITransaction>(transactions: T[]): Promise<T[]> {
+    this.ensureConnected();
+
     const extensionResponse = await this.startBgrMsgChannel(Operation.SignTransactions, {
       from: this.account.address,
       transactions: transactions.map(transaction => transaction.toPlainObject()),
@@ -126,6 +141,8 @@ export class ExtensionProvider {
   }
 
   async signMessage<T extends ISignableMessage>(message: T): Promise<T> {
+    this.ensureConnected();
+
     const data = {
       account: this.account.address,
       message: message.message.toString()

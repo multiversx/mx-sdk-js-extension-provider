@@ -2,7 +2,9 @@
 
 Signing provider for dApps: Maiar DeFi Wallet. 
 
-An integration sample can be found [here](examples/app.js). However, for all purposes, **we recommend using [dapp-core](https://github.com/ElrondNetwork/dapp-core)** instead of integrating the signing provider on your own.
+Documentation is available on [docs.elrond.com](https://docs.elrond.com/sdk-and-tools/erdjs/erdjs-signing-providers/), while an integration example can be found [here](https://github.com/ElrondNetwork/elrond-sdk-erdjs-examples/tree/main/signing-providers).
+
+Note that **we recommend using [dapp-core](https://github.com/ElrondNetwork/dapp-core)** instead of integrating the signing provider on your own.
 
 ## Distribution
 
@@ -23,26 +25,4 @@ In order to compile the library, run the following:
 ```
 npm install
 npm run compile
-```
-
-### Running the examples
-
-Make sure you have the package `http-server` installed globally.
-
-```
-npm install --global http-server
-```
-
-Furthermore, make sure you install the browser extension `Maiar DeFi Wallet` in advance.
-
-When you are ready, build the examples:
-
-```
-npm run compile-examples
-```
-
-Start the server and navigate to `http://localhost:8080/examples/index.html`
-
-```
-http-server --port=8080
 ```

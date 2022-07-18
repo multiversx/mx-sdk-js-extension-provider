@@ -15,3 +15,9 @@ export class ErrCannotSignSingleTransaction extends Err {
         super("Cannot sign single transaction.");
     }
 }
+
+export class ErrAccountNotConnected extends Err {
+    public constructor() {
+        super("Account is not connected.");
+    }
+}

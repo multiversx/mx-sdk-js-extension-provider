@@ -156,7 +156,9 @@ export class ExtensionProvider {
       const eventHandler = (event: any) => {
         if (event.isTrusted && event.data.target === "erdw-contentScript") {
           if (event.data.type === "connectResponse") {
-            this.account = event.data.data;
+            if(event.data.data && Boolean(event.data.data.address)) {
+              this.account = event.data.data
+            }
             window.removeEventListener("message", eventHandler);
             resolve(event.data.data);
           } else {

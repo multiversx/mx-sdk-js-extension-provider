@@ -1,7 +1,6 @@
-import { ISignableMessage, ITransaction } from "./interface";
-import { Address, Signature } from "./primitives";
-import { Operation } from "./operation";
 import { ErrAccountNotConnected, ErrCannotSignSingleTransaction } from "./errors";
+import { ISignableMessage, ITransaction } from "./interface";
+import { Operation } from "./operation";
 
 declare global {
   interface Window {
@@ -104,7 +103,7 @@ export class ExtensionProvider {
     this.ensureConnected();
 
     const signedTransactions = await this.signTransactions([transaction]);
-    
+
     if (signedTransactions.length != 1) {
       throw new ErrCannotSignSingleTransaction();
     }
@@ -129,9 +128,11 @@ export class ExtensionProvider {
     try {
       for (let i = 0; i < transactions.length; i++) {
         const transaction = transactions[i];
-        const plainSignedTransaction = extensionResponse[i];
+        const signatureHex: string = extensionResponse[i].signature;
+        const signature = Buffer.from(signatureHex, "hex");
 
-        transaction.applySignature(new Signature(plainSignedTransaction.signature), new Address(this.account.address));
+        transaction.applySignature(signature);
+        // TODO: in future minor version, call setOptions(), setGuardian(), applyGuardianSignature(), as well (if applicable).
       }
 
       return transactions;
@@ -148,7 +149,10 @@ export class ExtensionProvider {
       message: message.message.toString()
     };
     const extensionResponse = await this.startBgrMsgChannel(Operation.SignMessage, data);
-    message.applySignature(new Signature(extensionResponse.signature), new Address(this.account.address));
+    const signatureHex = extensionResponse.signature;
+    const signature = Buffer.from(signatureHex, "hex");
+
+    message.applySignature(signature);
     return message;
   }
 

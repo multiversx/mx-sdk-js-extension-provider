@@ -29,7 +29,7 @@ jobs:
           RELEASE_TAG=v$(node -p "require('./package.json').version")
           gh release create $RELEASE_TAG --target=$GITHUB_SHA --title="$RELEASE_TAG" --generate-notes
 
-      - name: Publish to npmjs
+      - name: Publish to npmjs next version
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
         if: ${{ steps.package.outputs.is-prerelease == 'true'}}

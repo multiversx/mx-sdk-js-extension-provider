@@ -136,7 +136,7 @@ export class ExtensionProvider {
     );
 
     try {
-      const transactionsResponse = extensionResponse.transactions.map(
+      const transactionsResponse = extensionResponse.map(
         (transaction: IPlainTransactionObject) =>
           Transaction.fromPlainObject(transaction)
       );

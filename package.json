@@ -1,6 +1,6 @@
 {
   "name": "@multiversx/sdk-extension-provider",
-  "version": "3.0.0-alpha.0",
+  "version": "3.0.0-alpha.1",
   "description": "Signing provider for dApps: DeFi Wallet",
   "main": "out/index.js",
   "types": "out/index.d.js",

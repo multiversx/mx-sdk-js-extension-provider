@@ -15,8 +15,12 @@ jobs:
         with:
           node-version: 16
           registry-url: https://registry.npmjs.org/
-      
+
       - run: npm ci
+
+      - name: Get package info
+        id: package
+        uses: andreigiura/action-nodejs-package-info@v1.0.2
 
       - name: Create release
         env:
@@ -24,8 +28,15 @@ jobs:
         run: |
           RELEASE_TAG=v$(node -p "require('./package.json').version")
           gh release create $RELEASE_TAG --target=$GITHUB_SHA --title="$RELEASE_TAG" --generate-notes
-      
+
       - name: Publish to npmjs
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+        if: ${{ steps.package.outputs.is-prerelease == 'true'}}
+        run: npm publish --access=public
+
+      - name: Publish to npmjs
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+        if: ${{ steps.package.outputs.is-prerelease == 'false'}}
         run: npm publish --access=public

@@ -18,10 +18,6 @@ jobs:
 
       - run: npm ci
 
-      - name: Get package info
-        id: package
-        uses: andreigiura/action-nodejs-package-info@v1.0.2
-
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -29,14 +25,7 @@ jobs:
           RELEASE_TAG=v$(node -p "require('./package.json').version")
           gh release create $RELEASE_TAG --target=$GITHUB_SHA --title="$RELEASE_TAG" --generate-notes
 
-      - name: Publish to npmjs next version
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-        if: ${{ steps.package.outputs.is-prerelease == 'true'}}
-        run: npm publish --tag next
-
       - name: Publish to npmjs
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-        if: ${{ steps.package.outputs.is-prerelease == 'false'}}
         run: npm publish --access=public

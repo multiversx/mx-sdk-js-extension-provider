@@ -1,7 +1,11 @@
-import { ISignableMessage, ITransaction } from "./interface";
-import { Address, Signature } from "./primitives";
+import { IPlainTransactionObject } from "@multiversx/sdk-core/out";
+import { SignableMessage } from "@multiversx/sdk-core/out/signableMessage";
+import { Transaction } from "@multiversx/sdk-core/out/transaction";
+import {
+  ErrAccountNotConnected,
+  ErrCannotSignSingleTransaction,
+} from "./errors";
 import { Operation } from "./operation";
-import { ErrAccountNotConnected, ErrCannotSignSingleTransaction } from "./errors";
 
 declare global {
   interface Window {
@@ -100,11 +104,11 @@ export class ExtensionProvider {
     return Boolean(this.account.address);
   }
 
-  async signTransaction<T extends ITransaction>(transaction: T): Promise<T> {
+  async signTransaction(transaction: Transaction): Promise<Transaction> {
     this.ensureConnected();
 
     const signedTransactions = await this.signTransactions([transaction]);
-    
+
     if (signedTransactions.length != 1) {
       throw new ErrCannotSignSingleTransaction();
     }
@@ -118,37 +122,46 @@ export class ExtensionProvider {
     }
   }
 
-  async signTransactions<T extends ITransaction>(transactions: T[]): Promise<T[]> {
+  async signTransactions(transactions: Transaction[]): Promise<Transaction[]> {
     this.ensureConnected();
 
-    const extensionResponse = await this.startBgrMsgChannel(Operation.SignTransactions, {
-      from: this.account.address,
-      transactions: transactions.map(transaction => transaction.toPlainObject()),
-    });
+    const extensionResponse = await this.startBgrMsgChannel(
+      Operation.SignTransactions,
+      {
+        from: this.account.address,
+        transactions: transactions.map((transaction) =>
+          transaction.toPlainObject()
+        ),
+      }
+    );
 
     try {
-      for (let i = 0; i < transactions.length; i++) {
-        const transaction = transactions[i];
-        const plainSignedTransaction = extensionResponse[i];
+      const transactionsResponse = extensionResponse.map(
+        (transaction: IPlainTransactionObject) =>
+          Transaction.fromPlainObject(transaction)
+      );
 
-        transaction.applySignature(new Signature(plainSignedTransaction.signature), new Address(this.account.address));
-      }
-
-      return transactions;
+      return transactionsResponse;
     } catch (error: any) {
       throw new Error(`Transaction canceled: ${error.message}.`);
     }
   }
 
-  async signMessage<T extends ISignableMessage>(message: T): Promise<T> {
+  async signMessage(message: SignableMessage): Promise<SignableMessage> {
     this.ensureConnected();
 
     const data = {
       account: this.account.address,
-      message: message.message.toString()
+      message: message.message.toString(),
     };
-    const extensionResponse = await this.startBgrMsgChannel(Operation.SignMessage, data);
-    message.applySignature(new Signature(extensionResponse.signature), new Address(this.account.address));
+    const extensionResponse = await this.startBgrMsgChannel(
+      Operation.SignMessage,
+      data
+    );
+    const signatureHex = extensionResponse.signature;
+    const signature = Buffer.from(signatureHex, "hex");
+
+    message.applySignature(signature);
     return message;
   }
 
@@ -174,7 +187,7 @@ export class ExtensionProvider {
         if (event.isTrusted && event.data.target === "erdw-contentScript") {
           if (event.data.type === "connectResponse") {
             if (event.data.data && Boolean(event.data.data.address)) {
-              this.account = event.data.data
+              this.account = event.data.data;
             }
             window.removeEventListener("message", eventHandler);
             resolve(event.data.data);

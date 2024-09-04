@@ -93,7 +93,7 @@ export class ExtensionProvider {
     return this.account ? this.account.address : "";
   }
 
-  isInitialized = (): boolean => {
+  isInitialized(): boolean {
     return this.initialized;
   };
 

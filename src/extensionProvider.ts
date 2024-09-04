@@ -5,7 +5,6 @@ import {
   ErrCannotSignSingleTransaction,
 } from "./errors";
 import { Operation } from "./operation";
-import {IDAppProviderAccount, IDAppProviderBase} from "@multiversx/sdk-dapp-utils/out";
 
 declare global {
   interface Window {
@@ -13,8 +12,13 @@ declare global {
   }
 }
 
-export class ExtensionProvider implements IDAppProviderBase {
-  public account: IDAppProviderAccount = { address: "" };
+export interface IProviderAccount {
+  address: string;
+  signature?: string;
+}
+
+export class ExtensionProvider {
+  private account: IProviderAccount = { address: "" };
   private initialized: boolean = false;
   private static _instance: ExtensionProvider = new ExtensionProvider();
 
@@ -48,7 +52,7 @@ export class ExtensionProvider implements IDAppProviderBase {
       callbackUrl?: string;
       token?: string;
     } = {}
-  ): Promise<IDAppProviderAccount> {
+  ): Promise<IProviderAccount> {
     if (!this.initialized) {
       throw new Error(
         "Extension provider is not initialised, call init() first"
@@ -97,8 +101,12 @@ export class ExtensionProvider implements IDAppProviderBase {
     return Boolean(this.account.address);
   }
 
-  getAccount(): IDAppProviderAccount | null {
+  getAccount(): IProviderAccount | null {
     return this.account;
+  }
+
+  setAccount(account: IProviderAccount): void {
+    this.account = account;
   }
 
   async signTransaction(transaction: Transaction): Promise<Transaction> {

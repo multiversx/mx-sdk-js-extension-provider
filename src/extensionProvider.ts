@@ -5,7 +5,7 @@ import {
   ErrCannotSignSingleTransaction,
 } from "./errors";
 import { Operation } from "./operation";
-import {Address} from "@multiversx/sdk-core/out";
+import { Address } from "@multiversx/sdk-core/out";
 
 declare global {
   interface Window {

@@ -1,11 +1,10 @@
-import { IPlainTransactionObject, Message } from "@multiversx/sdk-core";
+import { IPlainTransactionObject, Message, Address } from "@multiversx/sdk-core";
 import { Transaction } from "@multiversx/sdk-core/out/transaction";
 import {
   ErrAccountNotConnected,
   ErrCannotSignSingleTransaction,
 } from "./errors";
 import { Operation } from "./operation";
-import { Address } from "@multiversx/sdk-core/out";
 
 declare global {
   interface Window {

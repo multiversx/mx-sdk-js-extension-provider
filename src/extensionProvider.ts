@@ -158,7 +158,7 @@ export class ExtensionProvider {
 
     const data = {
       account: this.account.address,
-      message: messageToSign,
+      message: Buffer.from(messageToSign.data).toString(),
     };
     const extensionResponse = await this.startBgrMsgChannel(
       Operation.SignMessage,

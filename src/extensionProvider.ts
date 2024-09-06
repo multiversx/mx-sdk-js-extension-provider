@@ -5,6 +5,7 @@ import {
   ErrCannotSignSingleTransaction,
 } from "./errors";
 import { Operation } from "./operation";
+import {Address} from "@multiversx/sdk-core/out";
 
 declare global {
   interface Window {
@@ -152,8 +153,10 @@ export class ExtensionProvider {
     }
   }
 
-  async signMessage(messageToSign: string): Promise<Message> {
+  async signMessage(messageToSign: Message): Promise<Message> {
     this.ensureConnected();
+
+
 
     const data = {
       account: this.account.address,
@@ -166,12 +169,13 @@ export class ExtensionProvider {
     const signatureHex = extensionResponse.signature;
     const signature = Buffer.from(signatureHex, "hex");
 
-    const message = new Message({
-      data: Buffer.from(messageToSign)
+    return new Message({
+      data: Buffer.from(messageToSign.data),
+      address: messageToSign.address ?? Address.fromBech32(this.account.address),
+      signer: "extension",
+      version: messageToSign.version,
+      signature
     });
-    message.signature = signature;
-
-    return message;
   }
 
   cancelAction() {

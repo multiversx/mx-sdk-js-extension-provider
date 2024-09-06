@@ -156,8 +156,6 @@ export class ExtensionProvider {
   async signMessage(messageToSign: Message): Promise<Message> {
     this.ensureConnected();
 
-
-
     const data = {
       account: this.account.address,
       message: messageToSign,

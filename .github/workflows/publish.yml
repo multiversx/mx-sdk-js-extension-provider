@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   publish-npm:
-    runs-on: ubuntu-latest
+    runs-on: runner-dapp
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1

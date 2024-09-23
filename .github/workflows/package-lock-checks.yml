@@ -5,7 +5,7 @@ on:
 
 jobs:
   compare-package-lock:
-    runs-on: ubuntu-latest
+    runs-on: runner-dapp
 
     steps:
       - uses: actions/checkout@v2

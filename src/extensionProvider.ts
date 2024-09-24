@@ -1,5 +1,4 @@
-import { IPlainTransactionObject } from "@multiversx/sdk-core/out";
-import { SignableMessage } from "@multiversx/sdk-core/out/signableMessage";
+import { IPlainTransactionObject, Message, Address } from "@multiversx/sdk-core";
 import { Transaction } from "@multiversx/sdk-core/out/transaction";
 import {
   ErrAccountNotConnected,
@@ -13,14 +12,13 @@ declare global {
   }
 }
 
-interface IExtensionAccount {
+export interface IProviderAccount {
   address: string;
-  name?: string;
   signature?: string;
 }
 
 export class ExtensionProvider {
-  public account: IExtensionAccount = { address: "" };
+  private account: IProviderAccount = { address: "" };
   private initialized: boolean = false;
   private static _instance: ExtensionProvider = new ExtensionProvider();
 
@@ -54,7 +52,7 @@ export class ExtensionProvider {
       callbackUrl?: string;
       token?: string;
     } = {}
-  ): Promise<string> {
+  ): Promise<IProviderAccount> {
     if (!this.initialized) {
       throw new Error(
         "Extension provider is not initialised, call init() first"
@@ -63,7 +61,7 @@ export class ExtensionProvider {
     const { token } = options;
     const data = token ? token : "";
     await this.startBgrMsgChannel(Operation.Connect, data);
-    return this.account.address;
+    return this.account;
   }
 
   async logout(): Promise<boolean> {
@@ -99,9 +97,16 @@ export class ExtensionProvider {
     return this.initialized;
   }
 
-  // TODO: In V3, this will not be an async function anymore.
-  async isConnected(): Promise<boolean> {
+  isConnected(): boolean {
     return Boolean(this.account.address);
+  }
+
+  getAccount(): IProviderAccount | null {
+    return this.account;
+  }
+
+  setAccount(account: IProviderAccount): void {
+    this.account = account;
   }
 
   async signTransaction(transaction: Transaction): Promise<Transaction> {
@@ -147,12 +152,12 @@ export class ExtensionProvider {
     }
   }
 
-  async signMessage(message: SignableMessage): Promise<SignableMessage> {
+  async signMessage(messageToSign: Message): Promise<Message> {
     this.ensureConnected();
 
     const data = {
       account: this.account.address,
-      message: message.message.toString(),
+      message: Buffer.from(messageToSign.data).toString(),
     };
     const extensionResponse = await this.startBgrMsgChannel(
       Operation.SignMessage,
@@ -161,8 +166,13 @@ export class ExtensionProvider {
     const signatureHex = extensionResponse.signature;
     const signature = Buffer.from(signatureHex, "hex");
 
-    message.applySignature(signature);
-    return message;
+    return new Message({
+      data: Buffer.from(messageToSign.data),
+      address: messageToSign.address ?? Address.fromBech32(this.account.address),
+      signer: "extension",
+      version: messageToSign.version,
+      signature
+    });
   }
 
   cancelAction() {

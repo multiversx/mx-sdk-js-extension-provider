@@ -8,7 +8,11 @@ import { Operation } from "./operation";
 
 declare global {
   interface Window {
+    /**
+      * @deprecated `elrondWallet` will be deprecated in future versions. Please use `multiversxWallet` instead for future compatibility.
+    */
     elrondWallet: { extensionId: string };
+    multiversxWallet: { extensionId: string };
   }
 }
 
@@ -41,7 +45,9 @@ export class ExtensionProvider {
   }
 
   async init(): Promise<boolean> {
-    if (window && window.elrondWallet) {
+    // Note: `elrondWallet` will be deprecated in future versions. 
+    // Please use `multiversxWallet` instead for future compatibility.
+    if (window && (window.elrondWallet || window.multiversxWallet)) {
       this.initialized = true;
     }
     return this.initialized;

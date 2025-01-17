@@ -9,6 +9,7 @@ import { Operation } from "./operation";
 declare global {
   interface Window {
     elrondWallet: { extensionId: string };
+    multiversxWallet: { extensionId: string };
   }
 }
 
@@ -41,7 +42,7 @@ export class ExtensionProvider {
   }
 
   async init(): Promise<boolean> {
-    if (window && window.elrondWallet) {
+    if (window && (window.elrondWallet || window.multiversxWallet)) {
       this.initialized = true;
     }
     return this.initialized;

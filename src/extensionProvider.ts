@@ -8,6 +8,9 @@ import { Operation } from "./operation";
 
 declare global {
   interface Window {
+    /**
+      * @deprecated `elrondWallet` will be deprecated in future versions. Please use `multiversxWallet` instead for future compatibility.
+    */
     elrondWallet: { extensionId: string };
     multiversxWallet: { extensionId: string };
   }

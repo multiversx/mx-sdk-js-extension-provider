@@ -42,6 +42,8 @@ export class ExtensionProvider {
   }
 
   async init(): Promise<boolean> {
+    // Note: `elrondWallet` will be deprecated in future versions. 
+    // Please use `multiversxWallet` instead for future compatibility.
     if (window && (window.elrondWallet || window.multiversxWallet)) {
       this.initialized = true;
     }

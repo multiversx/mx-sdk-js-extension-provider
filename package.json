@@ -1,6 +1,6 @@
 {
   "name": "@multiversx/sdk-extension-provider",
-  "version": "4.0.1",
+  "version": "5.0.0",
   "description": "Signing provider for dApps: DeFi Wallet",
   "main": "out/index.js",
   "types": "out/index.d.js",
@@ -13,13 +13,13 @@
     "prepare": "npm run compile"
   },
   "author": "MultiversX",
-  "license": "GPL-3.0-or-later",
+  "license": "MIT",
   "devDependencies": {
-    "@multiversx/sdk-core": ">= 13.5.0",
+    "@multiversx/sdk-core": "^14.x",
     "@types/node": "17.0.23",
     "typescript": "5.5.4"
   },
   "peerDependencies": {
-    "@multiversx/sdk-core": ">= 13.5.0"
+    "@multiversx/sdk-core": "^14.x"
   }
 }

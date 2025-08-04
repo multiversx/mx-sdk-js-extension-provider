@@ -16,3 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [[v5.0.0]](https://github.com/multiversx/mx-sdk-js-extension-provider/pull/29) - 2025-03-19
 - [Upgrade sdk-core](https://github.com/multiversx/mx-sdk-js-extension-provider/pull/29)
 
+## [[v5.1.0]](https://github.com/multiversx/mx-sdk-js-extension-provider/pull/30) - 2025-09-04
+- [Upgrade sdk-core](https://github.com/multiversx/mx-sdk-js-extension-provider/pull/30)
+
+

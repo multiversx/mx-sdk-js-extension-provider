@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [[v4.0.2]](https://github.com/multiversx/mx-sdk-js-extension-provider/pull/33) - 2025-11-24
+
+- [Update sdk-core imports](https://github.com/multiversx/mx-sdk-js-extension-provider/pull/32)
+
 ## [[v4.0.1]](https://github.com/multiversx/mx-sdk-js-extension-provider/pull/27) - 2025-01-17
 
 - [Added multiversxWallet](https://github.com/multiversx/mx-sdk-js-extension-provider/pull/26)

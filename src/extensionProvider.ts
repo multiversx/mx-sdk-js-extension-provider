@@ -1,9 +1,8 @@
-import {
-  Address,
-  IPlainTransactionObject,
-  Message,
-  Transaction,
-} from "@multiversx/sdk-core";
+import { Transaction } from "@multiversx/sdk-core/out/core/transaction";
+import { Address } from "@multiversx/sdk-core/out/core/address";
+import { Message } from "@multiversx/sdk-core/out/core/message";
+import { IPlainTransactionObject } from "@multiversx/sdk-core/out/core/interfaces";
+
 import {
   ErrAccountNotConnected,
   ErrCannotSignSingleTransaction,

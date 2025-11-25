@@ -139,17 +139,21 @@ export class ExtensionProvider {
   async signTransactions(transactions: Transaction[]): Promise<Transaction[]> {
     this.ensureConnected();
 
-    const extensionResponse = await this.startBgrMsgChannel(
-      Operation.SignTransactions,
-      {
-        from: this.account.address,
-        transactions: transactions.map((transaction) =>
-          transaction.toPlainObject()
-        ),
-      }
-    );
-
     try {
+      const extensionResponse = await this.startBgrMsgChannel(
+        Operation.SignTransactions,
+        {
+          from: this.account.address,
+          transactions: transactions.map((transaction) =>
+            transaction.toPlainObject()
+          ),
+        }
+      );
+
+      if (!Array.isArray(extensionResponse)) {
+        throw new Error(extensionResponse?.name || JSON.stringify(extensionResponse));
+      }
+
       const transactionsResponse = extensionResponse.map(
         (transaction: IPlainTransactionObject) =>
           Transaction.newFromPlainObject(transaction)
@@ -157,7 +161,7 @@ export class ExtensionProvider {
 
       return transactionsResponse;
     } catch (error: any) {
-      throw new Error(`Transaction canceled: ${error.message}.`);
+      throw new Error(`Transaction failed${error.message ? `: ${error.message}` : '.'}`);
     }
   }
 

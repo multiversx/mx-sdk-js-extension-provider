@@ -1,9 +1,13 @@
 {
   "name": "@multiversx/sdk-extension-provider",
-  "version": "5.2.0-alpha.0",
+  "version": "5.2.0-alpha.1",
   "description": "Signing provider for dApps: DeFi Wallet",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/multiversx/mx-sdk-js-extension-provider.git"
+  },
   "main": "out/index.js",
-  "types": "out/index.d.js",
+  "types": "out/index.d.ts",
   "files": [
     "out/**/*"
   ],
@@ -16,18 +20,19 @@
   "author": "MultiversX",
   "license": "MIT",
   "devDependencies": {
-    "@multiversx/sdk-core": "^15.0.0",
-    "@types/jest": "29.5.14",
-    "@types/node": "17.0.23",
-    "jest": "29.7.0",
-    "jest-environment-jsdom": "29.7.0",
-    "ts-jest": "29.2.5",
-    "typescript": "5.5.4"
+    "@multiversx/sdk-core": "^16.0.0",
+    "@types/jest": "30.0.0",
+    "@types/node": "26.6.6",
+    "jest": "30.5.2",
+    "jest-environment-jsdom": "30.5.2",
+    "ts-jest": "29.4.15",
+    "typescript": "6.0.3"
   },
   "peerDependencies": {
-    "@multiversx/sdk-core": "^14.0.0 || ^15.0.0"
+    "@multiversx/sdk-core": "^14.0.0 || ^15.0.0 || ^16.0.0"
   },
   "allowScripts": {
+    "@parcel/watcher": false,
     "fsevents": false,
     "keccak": false,
     "protobufjs": false

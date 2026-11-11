@@ -6,6 +6,8 @@ import { IPlainTransactionObject } from "@multiversx/sdk-core/out/core/interface
 import {
   ErrAccountNotConnected,
   ErrCannotSignSingleTransaction,
+  ErrInvalidMessageSignature,
+  ErrTransactionsMismatch,
 } from "./errors";
 import { Operation } from "./operation";
 
@@ -149,16 +151,21 @@ export class ExtensionProvider {
       },
     );
 
+    let signedTransactions: Transaction[];
     try {
-      const transactionsResponse = extensionResponse.map(
+      signedTransactions = extensionResponse.map(
         (transaction: IPlainTransactionObject) =>
           Transaction.newFromPlainObject(transaction),
       );
-
-      return transactionsResponse;
     } catch (error: any) {
       throw new Error(`Transaction canceled: ${error.message}.`);
     }
+
+    if (!haveSameContent(transactions, signedTransactions)) {
+      throw new ErrTransactionsMismatch();
+    }
+
+    return signedTransactions;
   }
 
   async signMessage(messageToSign: Message): Promise<Message> {
@@ -172,7 +179,10 @@ export class ExtensionProvider {
       Operation.SignMessage,
       data,
     );
-    const signatureHex = extensionResponse.signature;
+    const signatureHex = extensionResponse?.signature;
+    if (!isSignatureHex(signatureHex)) {
+      throw new ErrInvalidMessageSignature();
+    }
     const signature = Buffer.from(signatureHex, "hex");
 
     return new Message({
@@ -215,8 +225,12 @@ export class ExtensionProvider {
 
         window.removeEventListener("message", eventHandler);
 
-        if (operation === Operation.Connect && data && Boolean(data.address)) {
-          this.account = data;
+        if (operation === Operation.Connect && isBech32Address(data?.address)) {
+          this.account = {
+            address: data.address,
+            signature:
+              typeof data.signature === "string" ? data.signature : undefined,
+          };
         }
 
         resolve(data);
@@ -255,3 +269,37 @@ const createRequestId = () => {
     "",
   );
 };
+
+const isBech32Address = (value: unknown): value is string => {
+  if (typeof value !== "string" || !value) {
+    return false;
+  }
+
+  try {
+    Address.newFromBech32(value);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+// Ed25519 signatures are 64 bytes.
+const isSignatureHex = (value: unknown): value is string =>
+  typeof value === "string" && /^[0-9a-fA-F]{128}$/.test(value);
+
+const haveSameContent = (
+  requested: Transaction[],
+  signed: Transaction[],
+): boolean =>
+  requested.length === signed.length &&
+  requested.every((transaction, index) => {
+    const other = signed[index];
+
+    return (
+      transaction.sender.toBech32() === other.sender.toBech32() &&
+      transaction.receiver.toBech32() === other.receiver.toBech32() &&
+      transaction.value === other.value &&
+      transaction.chainID === other.chainID &&
+      Buffer.from(transaction.data).equals(Buffer.from(other.data))
+    );
+  });

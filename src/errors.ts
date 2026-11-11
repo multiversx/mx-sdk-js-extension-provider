@@ -21,3 +21,15 @@ export class ErrAccountNotConnected extends Err {
         super("Account is not connected.");
     }
 }
+
+export class ErrTransactionsMismatch extends Err {
+    public constructor() {
+        super("Signed transactions do not match the transactions sent for signing.");
+    }
+}
+
+export class ErrInvalidMessageSignature extends Err {
+    public constructor() {
+        super("Message signing canceled or the signature is invalid.");
+    }
+}

@@ -170,9 +170,151 @@ describe("ExtensionProvider replies", () => {
     expect(provider.getAccount()?.address).toBe("");
   });
 
+  it("does not take the account from a connect reply with an invalid address", async () => {
+    const getResult = startLogin();
+    const { requestId } = getLastRequest(postMessageSpy);
+
+    reply(
+      createEvent({
+        data: {
+          target: "erdw-contentScript",
+          type: "connectResponse",
+          requestId,
+          data: { address: "<img src=x onerror=alert(1)>", signature: "aa" },
+        },
+      }),
+      addListenerSpy
+    );
+    await flush();
+
+    expect(getResult()).toEqual({ address: "" });
+    expect(provider.getAccount()?.address).toBe("");
+  });
+
+  it("keeps only the address and signature from a connect reply", async () => {
+    const getResult = startLogin();
+    const { requestId } = getLastRequest(postMessageSpy);
+
+    reply(
+      createEvent({
+        data: {
+          target: "erdw-contentScript",
+          type: "connectResponse",
+          requestId,
+          data: { address: ADDRESS, signature: "aa", extra: "field" },
+        },
+      }),
+      addListenerSpy
+    );
+    await flush();
+
+    expect(getResult()).toEqual({ address: ADDRESS, signature: "aa" });
+  });
+
   describe("when connected", () => {
     beforeEach(() => {
       provider.setAccount({ address: ADDRESS });
+    });
+
+    const replyWithTransactions = (transactions: Transaction[]) =>
+      reply(
+        createEvent({
+          data: {
+            target: "erdw-contentScript",
+            type: "signTransactionsResponse",
+            data: transactions.map((transaction) =>
+              transaction.toPlainObject()
+            ),
+          },
+        }),
+        addListenerSpy
+      );
+
+    it("rejects signed transactions that differ from the ones sent", async () => {
+      const promise = provider.signTransactions([
+        createTransaction(BigInt(1)),
+      ]);
+
+      replyWithTransactions([createTransaction(BigInt(999))]);
+
+      await expect(promise).rejects.toThrow(
+        "Signed transactions do not match"
+      );
+    });
+
+    it("rejects signed transactions sent to another receiver", async () => {
+      const promise = provider.signTransactions([
+        createTransaction(BigInt(1)),
+      ]);
+      const changed = createTransaction(BigInt(1));
+      changed.receiver = Address.newFromBech32(OTHER_ADDRESS);
+
+      replyWithTransactions([changed]);
+
+      await expect(promise).rejects.toThrow(
+        "Signed transactions do not match"
+      );
+    });
+
+    it("rejects a reply with a different number of transactions", async () => {
+      const promise = provider.signTransactions([
+        createTransaction(BigInt(1)),
+      ]);
+
+      replyWithTransactions([
+        createTransaction(BigInt(1)),
+        createTransaction(BigInt(1)),
+      ]);
+
+      await expect(promise).rejects.toThrow(
+        "Signed transactions do not match"
+      );
+    });
+
+    it.each([
+      ["a missing signature", {}],
+      ["a non-hex signature", { signature: "zz".repeat(64) }],
+      ["a short signature", { signature: "aa" }],
+    ])("rejects a message reply with %s", async (_, data) => {
+      const promise = provider.signMessage(
+        new Message({ data: Buffer.from("hello") })
+      );
+
+      reply(
+        createEvent({
+          data: {
+            target: "erdw-contentScript",
+            type: "signMessageResponse",
+            data,
+          },
+        }),
+        addListenerSpy
+      );
+
+      await expect(promise).rejects.toThrow("signature is invalid");
+    });
+
+    it("accepts a valid message signature", async () => {
+      const promise = provider.signMessage(
+        new Message({ data: Buffer.from("hello") })
+      );
+
+      reply(
+        createEvent({
+          data: {
+            target: "erdw-contentScript",
+            type: "signMessageResponse",
+            data: { signature: "ab".repeat(64) },
+          },
+        }),
+        addListenerSpy
+      );
+
+      const signed = await promise;
+      expect(Buffer.from(signed.signature!).toString("hex")).toBe(
+        "ab".repeat(64)
+      );
+      expect(signed.address?.toBech32()).toBe(ADDRESS);
     });
 
     it("ignores signed transactions from another window", async () => {

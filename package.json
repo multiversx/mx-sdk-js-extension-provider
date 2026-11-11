@@ -1,6 +1,6 @@
 {
   "name": "@multiversx/sdk-extension-provider",
-  "version": "5.2.0-alpha.1",
+  "version": "5.2.0",
   "description": "Signing provider for dApps: DeFi Wallet",
   "repository": {
     "type": "git",

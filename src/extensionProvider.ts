@@ -6,6 +6,8 @@ import { IPlainTransactionObject } from "@multiversx/sdk-core/out/core/interface
 import {
   ErrAccountNotConnected,
   ErrCannotSignSingleTransaction,
+  ErrInvalidMessageSignature,
+  ErrTransactionsMismatch,
 } from "./errors";
 import { Operation } from "./operation";
 
@@ -32,7 +34,7 @@ export class ExtensionProvider {
   private constructor() {
     if (ExtensionProvider._instance) {
       throw new Error(
-        "Error: Instantiation failed: Use ExtensionProvider.getInstance() instead of new."
+        "Error: Instantiation failed: Use ExtensionProvider.getInstance() instead of new.",
       );
     }
     ExtensionProvider._instance = this;
@@ -60,11 +62,11 @@ export class ExtensionProvider {
     options: {
       callbackUrl?: string;
       token?: string;
-    } = {}
+    } = {},
   ): Promise<IProviderAccount> {
     if (!this.initialized) {
       throw new Error(
-        "Extension provider is not initialised, call init() first"
+        "Extension provider is not initialised, call init() first",
       );
     }
     const { token } = options;
@@ -76,7 +78,7 @@ export class ExtensionProvider {
   async logout(): Promise<boolean> {
     if (!this.initialized) {
       throw new Error(
-        "Extension provider is not initialised, call init() first"
+        "Extension provider is not initialised, call init() first",
       );
     }
     try {
@@ -96,7 +98,7 @@ export class ExtensionProvider {
   async getAddress(): Promise<string> {
     if (!this.initialized) {
       throw new Error(
-        "Extension provider is not initialised, call init() first"
+        "Extension provider is not initialised, call init() first",
       );
     }
     return this.account ? this.account.address : "";
@@ -144,21 +146,26 @@ export class ExtensionProvider {
       {
         from: this.account.address,
         transactions: transactions.map((transaction) =>
-          transaction.toPlainObject()
+          transaction.toPlainObject(),
         ),
-      }
+      },
     );
 
+    let signedTransactions: Transaction[];
     try {
-      const transactionsResponse = extensionResponse.map(
+      signedTransactions = extensionResponse.map(
         (transaction: IPlainTransactionObject) =>
-          Transaction.newFromPlainObject(transaction)
+          Transaction.newFromPlainObject(transaction),
       );
-
-      return transactionsResponse;
     } catch (error: any) {
       throw new Error(`Transaction canceled: ${error.message}.`);
     }
+
+    if (!haveSameContent(transactions, signedTransactions)) {
+      throw new ErrTransactionsMismatch();
+    }
+
+    return signedTransactions;
   }
 
   async signMessage(messageToSign: Message): Promise<Message> {
@@ -170,9 +177,12 @@ export class ExtensionProvider {
     };
     const extensionResponse = await this.startBgrMsgChannel(
       Operation.SignMessage,
-      data
+      data,
     );
-    const signatureHex = extensionResponse.signature;
+    const signatureHex = extensionResponse?.signature;
+    if (!isSignatureHex(signatureHex)) {
+      throw new ErrInvalidMessageSignature();
+    }
     const signature = Buffer.from(signatureHex, "hex");
 
     return new Message({
@@ -191,33 +201,105 @@ export class ExtensionProvider {
 
   private startBgrMsgChannel(
     operation: string,
-    connectData: any
+    connectData: any,
   ): Promise<any> {
     return new Promise((resolve) => {
+      const requestId = createRequestId();
+      const responseType = getResponseType(operation);
+
+      const eventHandler = (event: MessageEvent) => {
+        if (!isFromContentScript(event)) {
+          return;
+        }
+
+        const { type, requestId: responseRequestId, data } = event.data;
+
+        const isLegacyResponse = !type && operation !== Operation.Connect;
+        if (type !== responseType && !isLegacyResponse) {
+          return;
+        }
+
+        if (responseRequestId != null && responseRequestId !== requestId) {
+          return;
+        }
+
+        window.removeEventListener("message", eventHandler);
+
+        if (operation === Operation.Connect && isBech32Address(data?.address)) {
+          this.account = {
+            address: data.address,
+            signature:
+              typeof data.signature === "string" ? data.signature : undefined,
+          };
+        }
+
+        resolve(data);
+      };
+
+      window.addEventListener("message", eventHandler, false);
+
       window.postMessage(
         {
-          target: "erdw-inpage",
+          target: INPAGE_TARGET,
           type: operation,
           data: connectData,
+          requestId,
         },
-        window.origin
+        window.origin,
       );
-
-      const eventHandler = (event: any) => {
-        if (event.isTrusted && event.data.target === "erdw-contentScript") {
-          if (event.data.type === "connectResponse") {
-            if (event.data.data && Boolean(event.data.data.address)) {
-              this.account = event.data.data;
-            }
-            window.removeEventListener("message", eventHandler);
-            resolve(event.data.data);
-          } else {
-            window.removeEventListener("message", eventHandler);
-            resolve(event.data.data);
-          }
-        }
-      };
-      window.addEventListener("message", eventHandler, false);
     });
   }
 }
+
+const INPAGE_TARGET = "erdw-inpage";
+const CONTENT_SCRIPT_TARGET = "erdw-contentScript";
+
+const getResponseType = (operation: string) => `${operation}Response`;
+
+const isFromContentScript = (event: MessageEvent) =>
+  event.isTrusted &&
+  event.source === window &&
+  event.origin === window.location.origin &&
+  event.data?.target === CONTENT_SCRIPT_TARGET;
+
+const createRequestId = () => {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+
+  return Array.from(bytes, (byte) => `0${byte.toString(16)}`.slice(-2)).join(
+    "",
+  );
+};
+
+const isBech32Address = (value: unknown): value is string => {
+  if (typeof value !== "string" || !value) {
+    return false;
+  }
+
+  try {
+    Address.newFromBech32(value);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+// Ed25519 signatures are 64 bytes.
+const isSignatureHex = (value: unknown): value is string =>
+  typeof value === "string" && /^[0-9a-fA-F]{128}$/.test(value);
+
+const haveSameContent = (
+  requested: Transaction[],
+  signed: Transaction[],
+): boolean =>
+  requested.length === signed.length &&
+  requested.every((transaction, index) => {
+    const other = signed[index];
+
+    return (
+      transaction.sender.toBech32() === other.sender.toBech32() &&
+      transaction.receiver.toBech32() === other.receiver.toBech32() &&
+      transaction.value === other.value &&
+      transaction.chainID === other.chainID &&
+      Buffer.from(transaction.data).equals(Buffer.from(other.data))
+    );
+  });
